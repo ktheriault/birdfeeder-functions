@@ -1,1 +1,7 @@
-exports.MAX_SAVE_COUNT = 2;
+exports.MAX_SAVE_COUNT = 5;
+exports.MAX_FAVORITES_COUNT = 10;
+exports.START_MAX_FRIENDS_COUNT = 10;
+exports.END_MAX_FRIENDS_COUNT = 50;
+
+exports.MAX_FRIENDS_LIMIT = 10;
+

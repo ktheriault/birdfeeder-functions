@@ -13,5 +13,8 @@ module.exports = {
     "linebreak-style": 0,
     "no-unused-vars": 0,
     "arrow-parens": 0,
+    "object-curly-spacing": ["error", "always"],
+    "require-jsdoc": 0,
+    "max-len": [2, 100, 2],
   },
 };
