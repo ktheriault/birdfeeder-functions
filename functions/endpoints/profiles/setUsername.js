@@ -12,10 +12,14 @@ module.exports = functions.https.onCall((data, context) => {
     throw new Error("User ID required");
   }
 
-  const blockedId = get(data, "blockedId");
-  if (!blockedId) {
-    throw new Error("Blocked ID required");
+  const username = get(data, "username");
+  if (!username && username != "") {
+    throw new Error("Username required");
   }
 
-  return friendsUtils.unblockUser(userId, blockedId);
+  const usernameRef = db.collection("profiles").doc(userId)
+
+  return usernameRef.set({
+    username,
+  }, { merge: true });
 });

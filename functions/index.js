@@ -6,9 +6,11 @@ const cors = require("cors")({
   origin: true,
 });
 
+exports.setUsername = require("./endpoints/profiles/setUsername");
+
 exports.saveCloudSave = require("./endpoints/saves/saveCloudSave");
-exports.loadCloudSave = require("./endpoints/saves/saves/loadCloudSave");
-exports.cleanUpDatabase = require("./endpoints/saves/saves/cleanUpDatabase");
+exports.loadCloudSave = require("./endpoints/saves/loadCloudSave");
+exports.cleanUpDatabase = require("./endpoints/saves/cleanUpDatabase");
 
 exports.addFavorite = require("./endpoints/favorites/addFavorite");
 exports.getCanAddFavorite = require("./endpoints/favorites/getCanAddFavorite");

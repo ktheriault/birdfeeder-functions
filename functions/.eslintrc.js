@@ -1,7 +1,7 @@
 module.exports = {
   root: true,
   env: {
-    es6: true,
+    es2021: true,
     node: true,
   },
   extends: [
@@ -15,6 +15,7 @@ module.exports = {
     "arrow-parens": 0,
     "object-curly-spacing": ["error", "always"],
     "require-jsdoc": 0,
-    "max-len": [2, 100, 2],
+    "max-len": [2, 120, 2],
+    "indent": ["error", 2],
   },
 };

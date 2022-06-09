@@ -1,6 +1,6 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const get = require("lodash/get");
+const get = require("lodash.get");
 
 module.exports = functions.https.onCall((data, context) => {
   const db = admin.firestore();
@@ -17,22 +17,27 @@ module.exports = functions.https.onCall((data, context) => {
 
   const pendingFriendCountRef = db.collection("pendingFriendCounts").doc(requestingId);
   const friendshipQuery = db.collection("friends")
-      .where("requestingId", "==", requestingId)
-      .where("acceptingId", "==", acceptingId)
-      .where("acceptedAt", "==", null)
-      .limit(1);
+    .where("requestingId", "==", requestingId)
+    .where("acceptingId", "==", acceptingId)
+    .where("acceptedAt", "==", null)
+    .limit(1);
 
-  return db.runTransaction(t => {
-    return t.get(friendshipQuery)
-        .then(querySnapshot => {
-          if (querySnapshot.empty) {
-            return;
-          }
-          t.delete(querySnapshot.docs[0].ref);
-          t.update(pendingFriendCountRef, {
-            count: admin.firestore.FieldValue.increment(-1),
-          });
-          return;
+  return friendshipQuery.get()
+    .then(querySnapshot => {
+      if (querySnapshot.empty) {
+        return;
+      }
+      const friendshipRef = get(querySnapshot, "docs[0].ref");
+      if (!friendshipRef) {
+        return;
+      }
+
+      return db.runTransaction(t => {
+        t.delete(friendshipRef);
+        t.update(pendingFriendCountRef, {
+          count: admin.firestore.FieldValue.increment(-1),
         });
-  });
+        return;
+      });
+    });
 });

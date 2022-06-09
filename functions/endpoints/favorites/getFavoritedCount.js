@@ -1,6 +1,6 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const get = require("lodash/get");
+const get = require("lodash.get");
 
 module.exports = functions.https.onCall((data, context) => {
   const db = admin.firestore();
@@ -11,11 +11,12 @@ module.exports = functions.https.onCall((data, context) => {
   }
 
   return db.collection("favoritedCounts")
-      .get(userId)
-      .then(doc => {
-        if (doc.exists) {
-          return get(doc.data(), "count");
-        }
-        return 0;
-      });
+    .doc(userId)
+    .get()
+    .then(doc => {
+      if (doc.exists) {
+        return get(doc.data(), "count");
+      }
+      return 0;
+    });
 });
