@@ -17,19 +17,31 @@ module.exports = functions.https.onCall((data, context) => {
 
   const userIdFriendCountRef = db.collection("friendCounts").doc(userId);
   const friendIdFriendCountRef = db.collection("friendCounts").doc(friendId);
-  const friendshipQuery = db.collection("friends")
-    .where(`idObj[${userId}]`, "==", true)
-    .where(`idObj[${friendId}]`, "==", true)
+  const friendshipQuery1 = db.collection("friends")
+    .where("requestingId", "==" )
+    .where("acceptingId", "==", friendId)
     .where("acceptedAt", "!=", null)
     .limit(1);
+  const friendshipQuery2 = db.collection("friends")
+    .where("requestingId", "==", friendId)
+    .where("acceptingId", "==", userId)
+    .where("acceptedAt", "!=", null)
+    .limit(1);
+  let friendshipRef;
 
-  return friendshipQuery.get()
+  return friendshipQuery1.get()
     .then(querySnapshot => {
-      if (querySnapshot.empty) {
-        return;
+      if (!querySnapshot.empty) {
+        friendshipRef = get(querySnapshot, "docs[0].ref");
+        return null;
       }
 
-      const friendshipRef = get(querySnapshot, "docs[0].ref");
+      return friendshipQuery2.get();
+    }).then((querySnapshot) => {
+      if (!friendshipRef && querySnapshot && !querySnapshot.empty) {
+        friendshipRef = get(querySnapshot, "docs[0].ref");
+      }
+
       if (!friendshipRef) {
         return;
       }

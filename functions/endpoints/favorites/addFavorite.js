@@ -35,7 +35,10 @@ module.exports = functions.https.onCall((data, context) => {
   return existingFavoritesQuery.get()
     .then(querySnapshot => {
       if (!querySnapshot.empty) {
-        return;
+        return {
+          success: false,
+          favoritedId,
+        };
       }
 
       return db.runTransaction(t => {
@@ -63,7 +66,7 @@ module.exports = functions.https.onCall((data, context) => {
             t.set(newFavoriteRef, {
               userId,
               favoritedId,
-              createdAt: admin.firestore.FieldValue.serverTimestamp,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
             t.set(favoriteCountRef, {
               count: favoriteCount + 1,
@@ -71,9 +74,15 @@ module.exports = functions.https.onCall((data, context) => {
             t.set(favoritedCountRef, {
               count: favoritedCount + 1,
             }, { merge: true });
-            return true;
+            return {
+              success: true,
+              favoritedId,
+            };
           }
-          return false;
+          return {
+            success: false,
+            favoritedId,
+          };
         });
       });
     });

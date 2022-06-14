@@ -63,4 +63,5 @@ exports.getPublicInfoFromSave = (gameDataJson) => {
       publicInfo[key] = value;
     }
   });
+  return JSON.stringify(publicInfo);
 };

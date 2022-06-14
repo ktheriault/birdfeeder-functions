@@ -10,6 +10,7 @@ exports.setUsername = require("./endpoints/profiles/setUsername");
 
 exports.saveCloudSave = require("./endpoints/saves/saveCloudSave");
 exports.loadCloudSave = require("./endpoints/saves/loadCloudSave");
+exports.getRandomFarmList = require("./endpoints/saves/getRandomFarmList");
 exports.cleanUpDatabase = require("./endpoints/saves/cleanUpDatabase");
 
 exports.addFavorite = require("./endpoints/favorites/addFavorite");

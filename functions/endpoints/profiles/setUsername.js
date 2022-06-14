@@ -2,8 +2,6 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const get = require("lodash.get");
 
-const friendsUtils = require("../../utils/friends");
-
 module.exports = functions.https.onCall((data, context) => {
   const db = admin.firestore();
 
@@ -17,7 +15,7 @@ module.exports = functions.https.onCall((data, context) => {
     throw new Error("Username required");
   }
 
-  const usernameRef = db.collection("profiles").doc(userId)
+  const usernameRef = db.collection("profiles").doc(userId);
 
   return usernameRef.set({
     username,

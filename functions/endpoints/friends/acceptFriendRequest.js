@@ -79,7 +79,7 @@ module.exports = functions.https.onCall((data, context) => {
           }
 
           t.set(docs[5].docs[0].ref, {
-            acceptedAt: admin.firestore.FieldValue.serverTimestamp,
+            acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
           }, { merge: true });
           t.set(requestingIdFriendCountRef, {
             count: requestingIdCurrentFriendCount + 1,

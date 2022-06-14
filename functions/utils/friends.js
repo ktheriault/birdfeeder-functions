@@ -65,9 +65,7 @@ exports.blockUser = (userId, blockedId) => {
           return db.collection("friendBlocks").doc().add({
             userId,
             blockedId,
-            idList: [userId, blockedId],
-            idObj: { [userId]: true, [blockedId]: true },
-            firstBlockedAt: admin.firestore.FieldValue.serverTimestamp,
+            firstBlockedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
         }
       }).then(() => {
@@ -97,20 +95,25 @@ exports.unblockUser = (userId, blockedId) => {
   });
 };
 
-exports.getIsUserBlocked = (userId1, userId2) => {
-  return getIsFriendshipBlocked(userId1, userId2);
-};
-
 function getHasCurrentOrPendingFriendship(requestingId, acceptingId) {
   return new Promise((resolve, reject) => {
     const db = admin.firestore();
     db.collection("friends")
-      .where(`idObj[${requestingId}]`, "==", true)
-      .where(`idObj[${acceptingId}]`, "==", true)
+      .where("requestingId", "==", requestingId)
+      .where("acceptingId", "==", acceptingId)
       .limit(1)
       .get()
       .then((querySnapshot) => {
-        resolve(!querySnapshot.empty);
+        if (!querySnapshot.empty) {
+          resolve(true);
+        }
+        return db.collection("friends")
+          .where("requestingId", "==", acceptingId)
+          .where("acceptingId", "==", requestingId)
+          .get()
+          .then(querySnapshot => {
+            resolve(!querySnapshot.empty);
+          });
       });
   });
 }
@@ -118,14 +121,52 @@ function getHasCurrentOrPendingFriendship(requestingId, acceptingId) {
 function getIsFriendshipBlocked(userId1, userId2) {
   return new Promise((resolve, reject) => {
     const db = admin.firestore();
-    db.collection("friendBlocks")
-      .where(`idObj[${userId1}]`, "==", true)
-      .where(`idObj[${userId2}]`, "==", true)
-      .limit(1)
-      .get()
+    const blockQuery1 = db.collection("friendBlocks")
+      .where("userId", "==", userId1)
+      .where("blockedId", "==", userId2)
+      .limit(1);
+    const blockQuery2 = db.collection("friendBlocks")
+      .where("userId", "==", userId2)
+      .where("blockedId", "==", userId1)
+      .limit(1);
+    blockQuery1.get()
       .then(querySnapshot => {
+        console.log("blockQuery1:", querySnapshot.empty);
+        if (!querySnapshot.empty) {
+          resolve(true);
+        }
+        return blockQuery2.get();
+      }).then(querySnapshot => {
+        console.log("blockQuery2:", querySnapshot.empty);
         resolve(!querySnapshot.empty);
       });
   });
 }
+
+exports.getIsFriendshipNotBlocked = (userId1, userId2) => {
+  return new Promise((resolve, reject) => {
+    const db = admin.firestore();
+    const blockQuery1 = db.collection("friendBlocks")
+      .where("userId", "==", userId1)
+      .where("blockedId", "==", userId2)
+      .limit(1);
+    const blockQuery2 = db.collection("friendBlocks")
+      .where("userId", "==", userId2)
+      .where("blockedId", "==", userId1)
+      .limit(1);
+    blockQuery1.get()
+      .then(querySnapshot => {
+        console.log("blockQuery1:", querySnapshot.empty);
+        if (!querySnapshot.empty) {
+          resolve(false);
+          return;
+        }
+        return blockQuery2.get();
+      }).then(querySnapshot => {
+        console.log("blockQuery2:", querySnapshot.empty);
+        resolve(querySnapshot.empty);
+        return;
+      });
+  });
+};
 

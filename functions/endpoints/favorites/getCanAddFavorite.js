@@ -17,11 +17,11 @@ module.exports = functions.https.onCall((data, context) => {
     throw new Error("Favorited ID required");
   }
 
-  return favoritesUtils.getHasReachedFavoritesLimit(userId)
-    .then((hasReachedLimit) => {
-      if (hasReachedLimit) {
-        return false;
-      }
-      return favoritesUtils.getCanAddFavorite(userId, favoritedId);
+  return favoritesUtils.getCanAddFavorite(userId, favoritedId)
+    .then((canAdd) => {
+      return {
+        canAdd,
+        favoritedId,
+      };
     });
 });

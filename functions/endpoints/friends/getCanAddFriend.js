@@ -15,5 +15,11 @@ module.exports = functions.https.onCall((data, context) => {
     throw new Error("Favorited ID required");
   }
 
-  return friendsUtils.getCanAddFriend(userId, friendId);
+  return friendsUtils.getCanAddFriend(userId, friendId)
+    .then(canAdd => {
+      return {
+        canAdd,
+        friendId,
+      };
+    });
 });

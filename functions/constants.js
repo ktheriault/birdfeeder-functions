@@ -6,9 +6,10 @@ exports.END_MAX_FRIEND_COUNT = 50;
 
 exports.MAX_FAVORITES_LIMIT = 10;
 exports.MAX_FRIENDS_LIMIT = 10;
+exports.MAX_RANDOM_FARMS_LIMIT = 10;
 
 exports.PUBLIC_SAVE_DATA_KEYS = {
-  "SavedInventoryData": true,
+  "SavedInventoryData": false,
   "SavedLocationData": true,
   "SavedLocationSlotData": true,
   "SavedFeederData": true,

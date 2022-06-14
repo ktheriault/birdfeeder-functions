@@ -28,13 +28,21 @@ module.exports = functions.https.onCall((data, context) => {
   const requestingIdPendingFriendCountRef = db.collection("pendingFriendCounts").doc(requestingId);
   const requestingIdFriendCountRef = db.collection("friendCounts").doc(requestingId);
   const acceptingIdFriendCountRef = db.collection("friendCounts").doc(acceptingId);
-  const friendshipQuery = db.collection("friends")
-    .where(`idObj[${requestingId}]`, "==", true)
-    .where(`idObj[${acceptingId}]`, "==", true)
+  const friendshipQuery1 = db.collection("friends")
+    .where("requestingId", "==", requestingId)
+    .where("acceptingId", "==", acceptingId)
     .limit(1);
-  const friendBlockQuery = db.collection("friendBlocks")
-    .where(`idObj[${requestingId}]`, "==", true)
-    .where(`idObj[${acceptingId}]`, "==", true)
+  const friendshipQuery2 = db.collection("friends")
+    .where("requestingId", "==", acceptingId)
+    .where("acceptingId", "==", requestingId)
+    .limit(1);
+  const friendBlockQuery1 = db.collection("friendBlocks")
+    .where("userId", "==", requestingId)
+    .where("blockedId", "==", acceptingId)
+    .limit(1);
+  const friendBlockQuery2 = db.collection("friendBlocks")
+    .where("userId", "==", acceptingId)
+    .where("blockedId", "==", requestingId)
     .limit(1);
   const newFriendshipRef = db.collection("friends").doc();
 
@@ -43,24 +51,31 @@ module.exports = functions.https.onCall((data, context) => {
   let requestingIdPendingFriendCount = 0;
   let acceptingIdCurrentFriendCount = 0;
   let requestingIdCurrentFriendCount = 0;
-  let canAddFriend = true;
 
-  return friendshipQuery.get()
+  const unsuccessfulData = {
+    success: false,
+    acceptingId,
+  };
+
+  return friendshipQuery1.get()
     .then(querySnapshot => {
-      if (!querySnapshot.empty) {
-        canAddFriend = false;
-        return;
+      if (querySnapshot === null || !querySnapshot.empty) {
+        return null;
       }
-
-      return friendBlockQuery.get();
+      return friendshipQuery2.get();
     }).then(querySnapshot => {
-      if (!canAddFriend) {
-        return;
+      if (querySnapshot === null || !querySnapshot.empty) {
+        return null;
       }
-
-      if (!querySnapshot.empty) {
-        canAddFriend = false;
-        return;
+      return friendBlockQuery1.get();
+    }).then(querySnapshot => {
+      if (querySnapshot === null || !querySnapshot.empty) {
+        return null;
+      }
+      return friendBlockQuery2.get();
+    }).then(querySnapshot => {
+      if (querySnapshot === null || !querySnapshot.empty) {
+        return unsuccessfulData;
       }
 
       return db.runTransaction(t => {
@@ -96,19 +111,23 @@ module.exports = functions.https.onCall((data, context) => {
           }
 
           if (requestingIdPendingFriendCount >= requestingIdMaxFriendCount) {
-            return;
+            return {
+              success: false,
+              acceptingId,
+            };
           }
           if (requestingIdCurrentFriendCount >= requestingIdMaxFriendCount ||
               acceptingIdCurrentFriendCount >= acceptingIdMaxFriendCount) {
-            return;
+            return {
+              success: false,
+              acceptingId,
+            };
           }
 
           t.create(newFriendshipRef, {
             requestingId: requestingId,
             acceptingId: acceptingId,
-            idList: [requestingId, acceptingId],
-            idObj: { [requestingId]: true, [acceptingId]: true },
-            requestedAt: admin.firestore.FieldValue.serverTimestamp,
+            requestedAt: admin.firestore.FieldValue.serverTimestamp(),
             acceptedAt: null,
           });
 
@@ -118,7 +137,10 @@ module.exports = functions.https.onCall((data, context) => {
             count: requestingIdPendingFriendCount + 1,
           }, { merge: true });
 
-          return;
+          return {
+            success: true,
+            acceptingId,
+          };
         });
       });
     });

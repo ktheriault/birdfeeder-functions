@@ -4,8 +4,9 @@ const get = require("lodash.get");
 
 const birdVisitUtils = require("../../utils/birdVisits");
 const friendUtils = require("../../utils/friends");
-const CONSTANTS = require("../../constants");
-const MAX_FRIENDS_LIMIT = CONSTANTS.MAX_FRIENDS_LIMIT;
+const {
+  MAX_RANDOM_FARMS_LIMIT,
+} = require("../../constants");
 
 module.exports = functions.https.onCall((data, context) => {
   const db = admin.firestore();
@@ -13,16 +14,16 @@ module.exports = functions.https.onCall((data, context) => {
   const myUserId = get(context, "auth.uid");
 
   const offset = get(data, "offset") || 0;
-  const limit = get(data, "limit") || MAX_FRIENDS_LIMIT;
-  const cappedLimit = limit > MAX_FRIENDS_LIMIT ? MAX_FRIENDS_LIMIT : limit;
+  const limit = get(data, "limit") || MAX_RANDOM_FARMS_LIMIT;
+  const cappedLimit = limit > MAX_RANDOM_FARMS_LIMIT ? MAX_RANDOM_FARMS_LIMIT : limit;
 
   const currentDate = new Date();
   let dataList = [];
+  let dedupedDocs = [];
 
+  // Later: delete objects with invalid validUntils, so can call and sort by score
   return db.collection("birdVisitMetadata")
-    .where("createdAt", "<", new Date())
     .where("validUntil", ">", currentDate)
-    .orderBy("score", "desc")
     .limit(cappedLimit)
     .offset(offset)
     .get()
@@ -30,8 +31,9 @@ module.exports = functions.https.onCall((data, context) => {
       if (querySnapshot.empty) {
         return false;
       }
+      console.log("number of docs:", querySnapshot.docs.length);
       const userIds = {};
-      const dedupedDocs = querySnapshot.docs.filter(doc => {
+      dedupedDocs = querySnapshot.docs.filter(doc => {
         const userId = get(doc.data(), "userId");
         if (!(userId in userIds) && userId != myUserId) {
           userIds[userId] = true;
@@ -39,20 +41,29 @@ module.exports = functions.https.onCall((data, context) => {
         }
         return false;
       });
-      return Promise.all(dedupedDocs.filter(doc => {
+      return Promise.all(dedupedDocs.map(doc => {
         const userId = get(doc.data(), "userId");
-        return !friendUtils.getIsUserBlocked(myUserId, userId);
+        return friendUtils.getIsFriendshipNotBlocked(myUserId, userId);
       }));
-    }).then(deblockedDocs => {
+    }).then(blockStatuses => {
+      if (!blockStatuses) {
+        return;
+      }
+      const deblockedDocs = dedupedDocs.filter((doc, i) => {
+        return get(blockStatuses, `[${i}]`) === true;
+      });
       return Promise.all(deblockedDocs.map(doc => {
         const saveId = get(doc.data(), "saveId");
         return db.collection("cloudSaves").doc(saveId).get();
       }));
     }).then(docs => {
+      if (!docs) {
+        return;
+      }
       dataList = docs.map(doc => {
         return {
-          userId: doc.userId,
-          data: birdVisitUtils.getPublicInfoFromSave(get(doc.data(), "gameDataJson")),
+          userId: get(doc.data(), "userId"),
+          gameDataJson: birdVisitUtils.getPublicInfoFromSave(get(doc.data(), "gameDataJson")),
         };
       });
       return Promise.all(dataList.map(data => {
@@ -64,12 +75,17 @@ module.exports = functions.https.onCall((data, context) => {
         }
       }));
     }).then(docs => {
+      if (!docs) {
+        return dataList;
+      }
       dataList = dataList.map((data, i) => {
+        const hasProfile = docs[i].exists;
         return {
           ...data,
-          username: get(docs[i].data(), "username"),
+          username: hasProfile ? get(docs[i].data(), "username") : null,
         };
       });
+      console.log("dataList with usernames:", dataList);
       return dataList;
       // TODO: Get online skin data
       // return Promise.all(dataList.map(data => db.collection("skins").doc(userId).get()))

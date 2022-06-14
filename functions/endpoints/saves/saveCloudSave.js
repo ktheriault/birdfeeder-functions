@@ -21,7 +21,7 @@ module.exports = functions.https.onCall((data, context) => {
   const saveCountRef = db.collection("cloudSaveCounts").doc(userId);
   const savesQuery = db.collection("cloudSaves")
     .where("userId", "==", userId)
-    .orderBy("timestamp", "asc")
+    .orderBy("createdAt", "asc")
     .limit(1);
   const newSaveRef = db.collection("cloudSaves").doc();
   const oldBirdVisitMetadataQuery = db.collection("birdVisitMetadata")
